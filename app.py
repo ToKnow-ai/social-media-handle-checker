@@ -69,9 +69,10 @@ def resolve_instagram_username(username: str) -> tuple[str, bool, str] :
            headers={
                "x-ig-app-id": x_ig_app_id,
            })
+        status = (user_data_response.json() or {}).get('status')
         return (
             username,
-            user_data_response.ok and user_data_response.json().get('status') == 'ok', 
+            user_data_response.ok and status == 'ok', 
             f"https://www.instagram.com/{username}/")
     return resolve
 
