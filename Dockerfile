@@ -18,4 +18,5 @@ COPY --chown=user . /app
 # CMD ["gunicorn", "-b", "0.0.0.0:7860", "app:app"]
 # Use Gunicorn to run the Quart application
 # https://github.com/benoitc/gunicorn/issues/2109#issuecomment-530030943
-CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "app:app"]
+# https://www.uvicorn.org/#hypercorn
+CMD ["hypercorn", "--bind", "0.0.0.0:7860", "app:app"]
