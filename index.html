@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Social Media Handle Checker | ToKnow.ai</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .platform-logo {
+            width: 30px;
+            height: 30px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Social Media Handle Checker</h1>
+
+        <p class="text-center text-body-secondary">
+            <a target="_blank" href="https://toknow.ai/posts/social-media-handle-checker"
+                class="text-decoration-none text-reset">
+                <b><u>ToKnow</u></b>.ai
+            </a>
+        </p>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-6 col-md-8">
+                <form id="search-form" class="mb-3 mt-4">
+                    <div class="input-group">
+                        <input type="text" id="social-handle" class="form-control" placeholder="Enter username"
+                            aria-label="Username" required />
+                        <button class="btn btn-primary" type="submit">Check</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-6 col-md-8" id="platform-container">
+            </div>
+        </div>
+
+        <p class="text-center mt-4 text-body-secondary text-lowercase">
+            <a target="_blank" href="https://toknow.ai/posts/social-media-handle-checker" class="text-decoration-none">
+                <i>get help or get more details</i>
+            </a>
+            <img class="rounded mx-auto d-block"
+                src="https://api.visitorbadge.io/api/visitors?path=https://toknow.ai/posts/social-media-handle-checker" />
+        </p>
+    </div>
+
+    <script>
+        const platformContainer = document.querySelector("#platform-container")
+        const platforms = [
+            {
+                id: "instagram",
+                name: "Instagram",
+                img: "https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/instagram.svg"
+            },
+            {
+                id: "x",
+                name: "X (formerly Twitter)",
+                img: "https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/twitter.svg"
+            },
+            {
+                id: "linkedin-user",
+                name: "LinkedIn User",
+                img: "https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/linkedin.svg"
+            },
+            {
+                id: "linkedin-page",
+                name: "LinkedIn Company",
+                img: "https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/linkedin.svg"
+            }
+        ];
+
+        for (const platform of platforms) {
+            platformContainer.innerHTML +=
+                `<div class="card mb-2" data-platform="${platform.id}">
+                    <div class="card-body d-flex align-items-center">
+                        <img src="${platform.img}" alt="${platform.name}" class="platform-logo">
+                        <span class="me-auto">${platform.name}</span>
+                        <div class="spinner-border text-primary d-none me-2"></div>
+                        <span class="status"></span>
+                    </div>
+                </div>`
+        }
+
+        document.getElementById('search-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const username = document.getElementById('social-handle').value;
+            if ((username || '').trim().length == 0) {
+                return;
+            }
+
+            if (platforms.length == 0) {
+                alert("Not working right now, please try again later...")
+                return;
+            }
+
+            // Simulate API calls
+            platforms.forEach(platform => {
+                const card = document.querySelector(`[data-platform="${platform.id}"]`);
+                const statusSpan = card.querySelector('.status');
+                const spinner = card.querySelector('.spinner-border');
+
+                card.classList.remove('bg-success-subtle', 'bg-danger-subtle', 'bg-warning-subtle');
+                spinner.classList.remove('d-none');
+                statusSpan.textContent = ' checking...';
+
+                fetch(`/check/${platform.id}/${username}`)
+                    .then(response => response.json())
+                    .then(({ available, message, url }) => {
+                        spinner.classList.add('d-none');
+                        if (available === true) {
+                            card.classList.add('bg-success-subtle');
+                            statusSpan.textContent = message;
+                            statusSpan.innerHTML += ` (<a href="${url}" target="_blank">view</a>)`;
+                        } else if (available === false) {
+                            card.classList.add('bg-danger-subtle');
+                            statusSpan.textContent = message;
+                            statusSpan.innerHTML += ` (<a href="${url}" target="_blank">view</a>)`;
+                        } else {
+                            card.classList.add('bg-warning-subtle');
+                            statusSpan.textContent = message || 'Unable to check';
+                        }
+                    })
+                    .catch(error => {
+                        spinner.classList.add('d-none');
+                        card.classList.add('bg-warning-subtle');
+                        statusSpan.textContent = `Error checking availability`;
+                    });
+            });
+        });
+    </script>
+</body>
+
+</html>
