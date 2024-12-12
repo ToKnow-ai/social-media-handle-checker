@@ -1,7 +1,7 @@
 import sys
 import os
 
-sys.path.append(os.path.abspath("../../../"))
+# sys.path.append(os.path.abspath("../../../"))
 
 import inspect
 from typing import Callable, Literal
@@ -10,7 +10,7 @@ import requests
 import re
 import asyncio
 from typing import Any, Callable, Coroutine
-from python_utils.get_browser import get_browser_page_async
+# from python_utils.get_browser import get_browser_page_async
 import re
 
 app = Quart(__name__)
