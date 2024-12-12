@@ -62,24 +62,31 @@ def resolve_instagram_username(username: str, logger: Callable[[str, str], None]
         pattern = r'^(?!.*\.\.)(?!.*\._)(?!.*_\.)(?![\.])[a-zA-Z0-9](?!.*\.$)[a-zA-Z0-9._]{0,28}[a-zA-Z0-9]$'
         return re.match(pattern, username) is not None
     def resolve() -> bool:
-        restricted_usernames = ["username"]
+        restricted_usernames = [
+            # "username", "we", "instagram"
+        ]
         if username.lower() in restricted_usernames:
             raise Exception(f'"{username}" is not allowed')
         if not is_valid_instagram_username(username):
             raise Exception(f'"{username}" is not a valid instagram username')
-        response = requests.get("https://www.instagram.com/")
+        response = requests.get(f"https://www.instagram.com/{username}/", allow_redirects = False)
+        _username = get_json_value(response.text, "username", "\w+") or ""
+        if _username.lower().strip() == username.lower().strip():
+            return (
+                username,
+                True, 
+                f"https://www.instagram.com/{username}/")
         x_ig_app_id = get_json_value(response.text, "X-IG-App-ID", "\d+")
         user_data_response = requests.get(
            url=f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}",
            headers={
                "x-ig-app-id": x_ig_app_id,
-           })
+           },
+           allow_redirects = False)
         logger("user_data_response:status", user_data_response.status_code)
-        logger("user_data_response:text", user_data_response.text)
-        status = (user_data_response.json() or {}).get('status')
         return (
             username,
-            user_data_response.ok and status == 'ok', 
+            user_data_response.status_code == 200 and (user_data_response.json() or {}).get('status') == 'ok', 
             f"https://www.instagram.com/{username}/")
     return resolve
 
