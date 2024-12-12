@@ -25,21 +25,25 @@ async def index():
 
 @app.route('/check/<platform>/<username>', methods=['GET'])
 async def check_social_media_handle(platform: str, username: str):
+    logs = []
+    response = {}
     match platform.lower():
         case "instagram":
-            return await async_availability_status(
-                resolve_instagram_username(username))
+            response = await async_availability_status(
+                resolve_instagram_username(username, logs.append))
         case "linkedin-user":
-            return await async_availability_status(
+            response = await async_availability_status(
                 resolve_linkedin_username(username, "in"))
         case "linkedin-page":
-            return await async_availability_status(
+            response = await async_availability_status(
                 resolve_linkedin_username(username, "company"))
-    return { 
-        "message": f'❌ The platform "{platform}" is not supported' 
-    }
+        case _:
+            response = { 
+                "message": f'❌ The platform "{platform}" is not supported' 
+            }
+    return {**response, "logs": logs}
 
-def resolve_instagram_username(username: str) -> tuple[str, bool, str] :
+def resolve_instagram_username(username: str, logger) -> tuple[str, bool, str] :
     def get_json_value(page_source, key, value_pattern):
         pattern = rf'[\'"]?{key}[\'"]?\s*:\s*[\'"]?({value_pattern})[\'"]?'
         match = re.search(pattern, page_source, flags=re.IGNORECASE)
@@ -69,6 +73,8 @@ def resolve_instagram_username(username: str) -> tuple[str, bool, str] :
            headers={
                "x-ig-app-id": x_ig_app_id,
            })
+        logger(f"user_data_response:status: {user_data_response.ok}")
+        logger(f"user_data_response:text: {user_data_response.text}")
         status = (user_data_response.json() or {}).get('status')
         return (
             username,
