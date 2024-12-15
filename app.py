@@ -62,6 +62,13 @@ def resolve_instagram_username(username: str, logger: Callable[[str, str], None]
         pattern = r'^(?!.*\.\.)(?!.*\._)(?!.*_\.)(?![\.])[a-zA-Z0-9](?!.*\.$)[a-zA-Z0-9._]{0,28}[a-zA-Z0-9]$'
         return re.match(pattern, username) is not None
     def resolve() -> bool:
+        # await fetch("https://www.instagram.com/ajax/bulk-route-definitions/", {
+        #     "headers": {
+        #         "content-type": "application/x-www-form-urlencoded",
+        #     },
+        #     "body": 'route_urls[0]=/us/&lsd=AVr8bTpwtk4', // "lsd" or 'token'
+        #     "method": "POST",
+        #     }).then(resp => resp.text()).then(text => JSON.parse(text.replace('for (;;);', ''))?.payload?.payloads)
         restricted_usernames = [
             # "username", "we", "instagram"
         ]
@@ -69,13 +76,14 @@ def resolve_instagram_username(username: str, logger: Callable[[str, str], None]
             raise Exception(f'"{username}" is not allowed')
         if not is_valid_instagram_username(username):
             raise Exception(f'"{username}" is not a valid instagram username')
-        response = requests.get(f"https://www.instagram.com/{username}/", allow_redirects = False)
+        profile_uri = f"https://www.instagram.com/{username}/"
+        response = requests.get(profile_uri, allow_redirects = False)
         _username = get_json_value(response.text, "username", "\w+") or ""
+        logger("user_data_response:_username", _username)
+        _return_result = lambda is_available: (username, is_available, profile_uri)
+        # if there is a username in the page, then this is likely an existing account
         if _username.lower().strip() == username.lower().strip():
-            return (
-                username,
-                True, 
-                f"https://www.instagram.com/{username}/")
+            return _return_result(True)
         x_ig_app_id = get_json_value(response.text, "X-IG-App-ID", "\d+")
         user_data_response = requests.get(
            url=f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}",
@@ -84,10 +92,14 @@ def resolve_instagram_username(username: str, logger: Callable[[str, str], None]
            },
            allow_redirects = False)
         logger("user_data_response:status", user_data_response.status_code)
-        return (
-            username,
-            user_data_response.status_code == 200 and (user_data_response.json() or {}).get('status') == 'ok', 
-            f"https://www.instagram.com/{username}/")
+        # if status is 404, then the account doesnt exist!
+        is_html = re.match(r'.*(\w+)/html', user_data_response.headers.get("Content-Type"))
+        if user_data_response.status_code == 404 and is_html:
+            return _return_result(False)
+        # if status is 200, check status of the json
+        is_json = re.match(r'.*(\w+)/json', user_data_response.headers.get("Content-Type"))
+        json_status = (user_data_response.json() or {}).get('status') == 'ok' if is_json else False
+        return _return_result(user_data_response.status_code == 200 and json_status)
     return resolve
 
 def resolve_linkedin_username(username: str, company_or_user: Literal["company", "in"]) -> tuple[str, bool, str]:
@@ -136,6 +148,4 @@ async def async_availability_status(
                 'url': uri
             }
     except Exception as e:
-        return {
-            'message': f"❌ {str(e)}"
-        }
+        return { 'message': f"❌ {str(e)}" }
