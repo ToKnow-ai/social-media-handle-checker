@@ -17,6 +17,9 @@
             cursor: pointer;
             color: rgba(var(--bs-link-color-rgb), var(--bs-link-opacity, 1));
         }
+        span[data-bs-toggle] {
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -89,13 +92,23 @@
             platformContainer.innerHTML +=
                 `<div class="card mb-2" data-platform="${platform.id}">
                     <div class="card-body d-flex align-items-center">
-                        <img src="${platform.img}" alt="${platform.name}" class="platform-logo">
-                        <span class="me-auto">${platform.name}</span>
+                        <span class="me-auto"
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#collapse-${platform.id}" 
+                            aria-expanded="false" 
+                            aria-controls="collapse-${platform.id}">
+                            <img src="${platform.img}" alt="${platform.name}" class="platform-logo">
+                            <span>${platform.name}</span>
+                        </span>
                         <div class="spinner-border text-primary d-none me-2"></div>
                         <span class="status"></span>
-                        <i class="ms-2 d-none bi bi-info-circle-fill" data-bs-toggle="collapse" data-bs-target="#collapse-${platform.id}" aria-expanded="false" aria-controls="collapse-${platform.id}"></i>
+                        <i class="ms-2 d-none bi bi-info-circle-fill" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#collapse-${platform.id}" 
+                            aria-expanded="false" 
+                            aria-controls="collapse-${platform.id}"></i>
                     </div>
-                    <div class="collapse p-3 pt-0" id="collapse-${platform.id}">
+                    <div class="collapse p-3 pt-0 fst-italic" id="collapse-${platform.id}">
                         <hr class="mt-0" />
                         <div></div>
                     </div>
