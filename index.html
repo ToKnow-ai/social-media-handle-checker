@@ -6,11 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Social Media Handle Checker | ToKnow.ai</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         .platform-logo {
             width: 30px;
             height: 30px;
             margin-right: 10px;
+        }
+        i[data-bs-toggle] {
+            cursor: pointer;
+            color: rgba(var(--bs-link-color-rgb), var(--bs-link-opacity, 1));
         }
     </style>
 </head>
@@ -30,6 +35,7 @@
             <div class="col-lg-6 col-md-8">
                 <form id="search-form" class="mb-3 mt-4">
                     <div class="input-group">
+                        <span class="input-group-text">@</span>
                         <input type="text" id="social-handle" class="form-control" placeholder="Enter username"
                             aria-label="Username" required />
                         <button class="btn btn-primary" type="submit">Check</button>
@@ -39,7 +45,7 @@
         </div>
 
         <div class="row justify-content-center">
-            <div class="col-lg-6 col-md-8" id="platform-container">
+            <div class="col-lg-8 col-md-10" id="platform-container">
             </div>
         </div>
 
@@ -51,6 +57,8 @@
                 src="https://api.visitorbadge.io/api/visitors?path=https://toknow.ai/posts/social-media-handle-checker" />
         </p>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
         const platformContainer = document.querySelector("#platform-container")
@@ -85,6 +93,11 @@
                         <span class="me-auto">${platform.name}</span>
                         <div class="spinner-border text-primary d-none me-2"></div>
                         <span class="status"></span>
+                        <i class="ms-2 d-none bi bi-info-circle-fill" data-bs-toggle="collapse" data-bs-target="#collapse-${platform.id}" aria-expanded="false" aria-controls="collapse-${platform.id}"></i>
+                    </div>
+                    <div class="collapse p-3 pt-0" id="collapse-${platform.id}">
+                        <hr class="mt-0" />
+                        <div></div>
                     </div>
                 </div>`
         }
@@ -105,33 +118,40 @@
             platforms.forEach(platform => {
                 const card = document.querySelector(`[data-platform="${platform.id}"]`);
                 const statusSpan = card.querySelector('.status');
+                const collapse = card.querySelector('.collapse > div');
                 const spinner = card.querySelector('.spinner-border');
+                const i_toggle = card.querySelector('i[data-bs-toggle]');
 
                 card.classList.remove('bg-success-subtle', 'bg-danger-subtle', 'bg-warning-subtle');
                 spinner.classList.remove('d-none');
-                statusSpan.textContent = ' checking...';
+                statusSpan.textContent = 'Checking...';
 
                 fetch(`/check/${platform.id}/${username}`)
                     .then(response => response.json())
                     .then(({ available, message, url }) => {
-                        spinner.classList.add('d-none');
                         if (available === true) {
                             card.classList.add('bg-success-subtle');
-                            statusSpan.textContent = message;
-                            statusSpan.innerHTML += ` (<a href="${url}" target="_blank">view</a>)`;
+                            statusSpan.innerHTML = `<a href="${url}" target="_blank">${username}</a>: ✅ Available`;
                         } else if (available === false) {
                             card.classList.add('bg-danger-subtle');
-                            statusSpan.textContent = message;
-                            statusSpan.innerHTML += ` (<a href="${url}" target="_blank">view</a>)`;
+                            statusSpan.innerHTML = `<a href="${url}" target="_blank">${username}</a>: ❌ Taken`;
                         } else {
                             card.classList.add('bg-warning-subtle');
-                            statusSpan.textContent = message || 'Unable to check';
+                            statusSpan.textContent = `${username}: 🛑 Unable to check`;
                         }
+                        collapse.innerHTML = message;
                     })
                     .catch(error => {
-                        spinner.classList.add('d-none');
                         card.classList.add('bg-warning-subtle');
                         statusSpan.textContent = `Error checking availability`;
+                        collapse.innerHTML = error;
+                    }).finally(() => {
+                        spinner.classList.add('d-none');
+                        if (collapse.textContent.trim().length > 0) {
+                            i_toggle.classList.remove('d-none');
+                        } else {
+                            i_toggle.classList.add('d-none');
+                        }
                     });
             });
         });

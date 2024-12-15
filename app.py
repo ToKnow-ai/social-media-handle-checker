@@ -31,20 +31,35 @@ async def check_social_media_handle(platform: str, username: str):
     match platform.lower():
         case "instagram":
             response = await async_availability_status(
-                resolve_instagram_username(username, logger))
+                resolve = resolve_instagram_username(username, logger),
+                logger = logger,
+                message = (
+                    f'username <b>"{username}"</b> is ✅ Available.'
+                    ' However, usernames from disabled or deleted accounts may also appear'
+                    ' available but you can\'t choose them, eg: usernames like <b>"we"</b>, <b>"us"</b>, and <b>"the"</b>.'
+                    ' Go to <a target="_blank" href="https://accountscenter.instagram.com/">accounts center</a>'
+                    " and try changing the username of an existing account and see if it it's available"))
         case "linkedin-user":
             response = await async_availability_status(
-                resolve_linkedin_username(username, "in"))
+                resolve = resolve_linkedin_username(username, "in", logger),
+                logger = logger,
+                message = (
+                    f'username <b>"{username}"</b> is ✅ Available.'
+                    ' However, usernames from private or deleted accounts will appear'
+                    " available, login into LinkedIn and go to"
+                    f" \"https://www.linkedin.com/in/{username}\" and see if it it's available"))
         case "linkedin-page":
             response = await async_availability_status(
-                resolve_linkedin_username(username, "company"))
+                resolve = resolve_linkedin_username(username, "company", logger),
+                logger = logger)
         case _:
             response = { 
                 "message": f'❌ The platform "{platform}" is not supported' 
             }
     return {**response, "logs": logs}
 
-def resolve_instagram_username(username: str, logger: Callable[[str, str], None]) -> tuple[str, bool, str] :
+def resolve_instagram_username(
+        username: str, logger: Callable[[str, str], None]) -> tuple[str, bool, str]:
     def get_json_value(page_source, key, value_pattern):
         pattern = rf'[\'"]?{key}[\'"]?\s*:\s*[\'"]?({value_pattern})[\'"]?'
         match = re.search(pattern, page_source, flags=re.IGNORECASE)
@@ -62,47 +77,37 @@ def resolve_instagram_username(username: str, logger: Callable[[str, str], None]
         pattern = r'^(?!.*\.\.)(?!.*\._)(?!.*_\.)(?![\.])[a-zA-Z0-9](?!.*\.$)[a-zA-Z0-9._]{0,28}[a-zA-Z0-9]$'
         return re.match(pattern, username) is not None
     def resolve() -> bool:
-        # await fetch("https://www.instagram.com/ajax/bulk-route-definitions/", {
-        #     "headers": {
-        #         "content-type": "application/x-www-form-urlencoded",
-        #     },
-        #     "body": 'route_urls[0]=/us/&lsd=AVr8bTpwtk4', // "lsd" or 'token'
-        #     "method": "POST",
-        #     }).then(resp => resp.text()).then(text => JSON.parse(text.replace('for (;;);', ''))?.payload?.payloads)
-        restricted_usernames = [
-            # "username", "we", "instagram"
-        ]
-        if username.lower() in restricted_usernames:
-            raise Exception(f'"{username}" is not allowed')
         if not is_valid_instagram_username(username):
             raise Exception(f'"{username}" is not a valid instagram username')
         profile_uri = f"https://www.instagram.com/{username}/"
-        response = requests.get(profile_uri, allow_redirects = False)
-        _username = get_json_value(response.text, "username", "\w+") or ""
-        logger("user_data_response:_username", _username)
+        profile_response = requests.get(profile_uri, allow_redirects = False)
+        profile_response_username = get_json_value(profile_response.text, "username", "\w+") or ""
+        logger("profile_response_username", profile_response_username)
         _return_result = lambda is_available: (username, is_available, profile_uri)
         # if there is a username in the page, then this is likely an existing account
-        if _username.lower().strip() == username.lower().strip():
+        if profile_response_username.lower().strip() == username.lower().strip():
             return _return_result(True)
-        x_ig_app_id = get_json_value(response.text, "X-IG-App-ID", "\d+")
-        user_data_response = requests.get(
+        x_ig_app_id = get_json_value(profile_response.text, "X-IG-App-ID", "\d+")
+        web_profile_response = requests.get(
            url=f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}",
            headers={
                "x-ig-app-id": x_ig_app_id,
            },
            allow_redirects = False)
-        logger("user_data_response:status", user_data_response.status_code)
+        logger("web_profile_response.status_code", web_profile_response.status_code)
         # if status is 404, then the account doesnt exist!
-        is_html = re.match(r'.*(\w+)/html', user_data_response.headers.get("Content-Type"))
-        if user_data_response.status_code == 404 and is_html:
+        is_html = re.match(r'.*(\w+)/html', web_profile_response.headers.get("Content-Type"))
+        if web_profile_response.status_code == 404 and is_html:
             return _return_result(False)
         # if status is 200, check status of the json
-        is_json = re.match(r'.*(\w+)/json', user_data_response.headers.get("Content-Type"))
-        json_status = (user_data_response.json() or {}).get('status') == 'ok' if is_json else False
-        return _return_result(user_data_response.status_code == 200 and json_status)
+        is_json = re.match(r'.*(\w+)/json', web_profile_response.headers.get("Content-Type"))
+        json_status = (web_profile_response.json() or {}).get('status') == 'ok' if is_json else False
+        return _return_result(web_profile_response.status_code == 200 and json_status)
     return resolve
 
-def resolve_linkedin_username(username: str, company_or_user: Literal["company", "in"]) -> tuple[str, bool, str]:
+def resolve_linkedin_username(
+        username: str, company_or_user: Literal["company", "in"], 
+        logger: Callable[[str, str], None],) -> tuple[str, bool, str]:
     async def resolve() -> tuple[str, bool, str]:
         # can replace "www." with "de.", ".ke", ".ug", etc
         # inkedin private user => kamau
@@ -123,11 +128,14 @@ def resolve_linkedin_username(username: str, company_or_user: Literal["company",
     return resolve
 
 async def async_availability_status(
-        resolve: Callable[[str], Coroutine[Any, Any, bool]], message: str = None):
+        resolve: Callable[[str], Coroutine[Any, Any, bool]], 
+        logger: Callable[[str, str], None],
+        message: str = None):
     try:
         username_is_available_uri: tuple[str, bool, str] = await resolve()\
             if inspect.iscoroutinefunction(resolve) or inspect.isawaitable(resolve)\
             else await asyncio.to_thread(resolve)
+        logger("username_is_available_uri", username_is_available_uri)
         username, is_available, uri = username_is_available_uri
         if is_available == True:
             return {
@@ -148,4 +156,5 @@ async def async_availability_status(
                 'url': uri
             }
     except Exception as e:
+        logger(f"{async_availability_status.__name__}:Exception", str(e))
         return { 'message': f"❌ {str(e)}" }
