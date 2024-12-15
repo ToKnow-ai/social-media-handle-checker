@@ -91,22 +91,14 @@
         for (const platform of platforms) {
             platformContainer.innerHTML +=
                 `<div class="card mb-2" data-platform="${platform.id}">
-                    <div class="card-body d-flex align-items-center">
-                        <span class="me-auto"
-                            data-bs-toggle="collapse" 
-                            data-bs-target="#collapse-${platform.id}" 
-                            aria-expanded="false" 
+                    <div class="card-body d-flex align-items-center" data-bs-toggle="collapse"
+                            data-bs-target="#collapse-${platform.id}" aria-expanded="false" 
                             aria-controls="collapse-${platform.id}">
-                            <img src="${platform.img}" alt="${platform.name}" class="platform-logo">
-                            <span>${platform.name}</span>
-                        </span>
+                        <img src="${platform.img}" alt="${platform.name}" class="platform-logo">
+                        <span class="me-auto">${platform.name}</span>
                         <div class="spinner-border text-primary d-none me-2"></div>
                         <span class="status"></span>
-                        <i class="ms-2 d-none bi bi-info-circle-fill" 
-                            data-bs-toggle="collapse" 
-                            data-bs-target="#collapse-${platform.id}" 
-                            aria-expanded="false" 
-                            aria-controls="collapse-${platform.id}"></i>
+                        <i class="ms-2 d-none bi bi-info-circle-fill"></i>
                     </div>
                     <div class="collapse p-3 pt-0 fst-italic" id="collapse-${platform.id}">
                         <hr class="mt-0" />
@@ -137,6 +129,7 @@
 
                 card.classList.remove('bg-success-subtle', 'bg-danger-subtle', 'bg-warning-subtle');
                 spinner.classList.remove('d-none');
+                i_toggle.classList.add('d-none');
                 statusSpan.textContent = 'Checking...';
 
                 fetch(`/check/${platform.id}/${username}`)
@@ -160,13 +153,17 @@
                         collapse.innerHTML = error;
                     }).finally(() => {
                         spinner.classList.add('d-none');
-                        if (collapse.textContent.trim().length > 0) {
-                            i_toggle.classList.remove('d-none');
-                        } else {
-                            i_toggle.classList.add('d-none');
-                        }
+                        i_toggle.classList.remove('d-none');
                     });
             });
+        });
+
+        platformContainer.addEventListener('click', e => {
+            if (e.target.closest(".status > a")){
+                e.stopPropagation();
+                e.preventDefault()
+                window.open(e.target.href, '_blank').focus();
+            }
         });
     </script>
 </body>
