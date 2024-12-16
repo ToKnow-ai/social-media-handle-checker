@@ -13,11 +13,10 @@
             height: 30px;
             margin-right: 10px;
         }
-        i[data-bs-toggle] {
-            cursor: pointer;
+        .card-body > i {
             color: rgba(var(--bs-link-color-rgb), var(--bs-link-opacity, 1));
         }
-        span[data-bs-toggle] {
+        .card-body {
             cursor: pointer;
         }
     </style>
@@ -98,7 +97,7 @@
                         <span class="me-auto">${platform.name}</span>
                         <div class="spinner-border text-primary d-none me-2"></div>
                         <span class="status"></span>
-                        <i class="ms-2 d-none bi bi-info-circle-fill"></i>
+                        <i class="ms-2 bi bi-info-circle-fill"></i>
                     </div>
                     <div class="collapse p-3 pt-0 fst-italic" id="collapse-${platform.id}">
                         <hr class="mt-0" />
