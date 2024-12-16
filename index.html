@@ -125,11 +125,9 @@
                 const statusSpan = card.querySelector('.status');
                 const collapse = card.querySelector('.collapse > div');
                 const spinner = card.querySelector('.spinner-border');
-                const i_toggle = card.querySelector('i[data-bs-toggle]');
 
                 card.classList.remove('bg-success-subtle', 'bg-danger-subtle', 'bg-warning-subtle');
                 spinner.classList.remove('d-none');
-                i_toggle.classList.add('d-none');
                 statusSpan.textContent = 'Checking...';
 
                 fetch(`/check/${platform.id}/${username}`)
@@ -153,7 +151,6 @@
                         collapse.innerHTML = error;
                     }).finally(() => {
                         spinner.classList.add('d-none');
-                        i_toggle.classList.remove('d-none');
                     });
             });
         });
@@ -161,8 +158,9 @@
         platformContainer.addEventListener('click', e => {
             if (e.target.closest(".status > a")){
                 e.stopPropagation();
-                e.preventDefault()
+                e.preventDefault();
                 window.open(e.target.href, '_blank').focus();
+                return;
             }
         });
     </script>
