@@ -1,5 +1,5 @@
 ---
-title: Social Media Handle Checker
+title: Social Media Handle Checker | ToKnow.ai
 emoji: 📚
 colorFrom: red
 colorTo: pink
