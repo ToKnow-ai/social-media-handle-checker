@@ -6,14 +6,66 @@ import os
 import inspect
 from typing import Callable, Literal
 from quart import Quart, send_from_directory
+from quart import Quart, Response, request
 import requests
+from bs4 import BeautifulSoup
 import re
 import asyncio
 from typing import Any, Callable, Coroutine
 # from python_utils.get_browser import get_browser_page_async
 import re
+from requests_tor import RequestsTor
 
 app = Quart(__name__)
+
+
+# Your custom JavaScript to inject
+CUSTOM_SCRIPT = """
+<script>
+    // Add your custom logic here
+    console.log('Custom script loaded in website B');
+    // Example: Send message to parent window
+    window.parent.postMessage('Hello from website B', '*');
+</script>
+"""
+
+@app.route('/instagram/<path:path>', methods=['GET'])
+async def proxy(path: str):
+    # Construct the full URL for website B
+    site_b_url = f"https://www.instagram.com/{path}/" # f"https://websiteB.com/{path}"  # Replace with actual domain
+    
+    try:
+        # Forward the request to website B
+        response = requests.get(
+            site_b_url,
+            # headers={k: v for k, v in request.headers if k.lower() != 'host'},
+            # cookies=request.cookies,
+            allow_redirects=False
+        )  
+        resp = Response(
+            response.content,
+            status=response.status_code
+        )
+        
+        # Forward original headers while maintaining CORS
+        excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
+        headers = [(k, v) for k, v in response.headers.items()
+                  if k.lower() not in excluded_headers]
+        
+        # Preserve CORS headers from original response
+        cors_headers = ['access-control-allow-origin',
+                       'access-control-allow-methods',
+                       'access-control-allow-headers',
+                       'access-control-allow-credentials']
+        
+        for header in headers:
+            if header[0].lower() in cors_headers:
+                resp.headers[header[0]] = header[1]
+        
+        return resp
+    
+    except requests.RequestException as e:
+        return f"Error fetching content: {str(e)}", 500
 
 @app.route('/')
 async def index():
@@ -72,14 +124,18 @@ def resolve_instagram_username(
         - Cannot start or end with a period
         - Cannot have consecutive periods
         - Cannot have periods next to underscores
+        - Can start or end with underscore
         """
         # Regex pattern for Instagram username validation
-        pattern = r'^(?!.*\.\.)(?!.*\._)(?!.*_\.)(?![\.])[a-zA-Z0-9](?!.*\.$)[a-zA-Z0-9._]{0,28}[a-zA-Z0-9]$'
+        pattern = r'^(?!.*\.\.)(?!.*\._)(?!.*_\.)[a-zA-Z0-9._][a-zA-Z0-9._]{0,28}[a-zA-Z0-9._]$'
+        # Additional length check since regex alone might not handle it perfectly
+        if len(username) < 1 or len(username) > 30:
+            return False
         return re.match(pattern, username) is not None
     def resolve() -> bool:
         if not is_valid_instagram_username(username):
             raise Exception(f'"{username}" is not a valid instagram username')
-        profile_uri = f"https://www.instagram.com/{username}/"
+        profile_uri = f"https:/www.instagram.com/{username}/"
         profile_response = requests.get(profile_uri, allow_redirects = False)
         profile_response_username = get_json_value(profile_response.text, "username", "\w+") or ""
         logger("profile_response_username", profile_response_username)
