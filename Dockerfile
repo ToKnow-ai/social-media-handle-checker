@@ -15,8 +15,5 @@ RUN apt-get -y update && apt-get -y install whois && apt-get -y install netbase
 
 COPY --chown=user . /app
 
-# CMD ["gunicorn", "-b", "0.0.0.0:7860", "app:app"]
-# Use Gunicorn to run the Quart application
-# https://github.com/benoitc/gunicorn/issues/2109#issuecomment-530030943
-# https://www.uvicorn.org/#hypercorn
-CMD ["hypercorn", "--bind", "0.0.0.0:7860", "app:app"]
+# Use Uvicorn to run the FastAPI application
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
