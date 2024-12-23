@@ -105,6 +105,11 @@ def resolve_instagram_username(
     def resolve() -> bool:
         profile_uri = f"https://www.instagram.com/{username}/"
         profile_response = requests.get(profile_uri, allow_redirects = False)
+        logger(
+            "profile_response_status", 
+             f"{profile_response.status_code} {profile_response.headers.get('Location')}" \
+              if profile_response.status_code in [301, 302] \
+              else profile_response.status_code)
         profile_response_username = get_json_value(profile_response.text, "username", "\w+") or ""
         logger("profile_response_username", profile_response_username)
         _return_result = lambda is_available: (username, is_available, profile_uri)

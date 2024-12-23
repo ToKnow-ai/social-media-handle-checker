@@ -64,28 +64,7 @@
 
     <script>
         const platformContainer = document.querySelector("#platform-container")
-        const platforms = [
-            {
-                id: "instagram",
-                name: "Instagram",
-                img: "https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/instagram.svg"
-            },
-            {
-                id: "x",
-                name: "X (formerly Twitter)",
-                img: "https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/twitter.svg"
-            },
-            {
-                id: "linkedin-user",
-                name: "LinkedIn User",
-                img: "https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/linkedin.svg"
-            },
-            {
-                id: "linkedin-page",
-                name: "LinkedIn Company",
-                img: "https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/linkedin.svg"
-            }
-        ];
+        const platforms = {{ json_data | safe }};
 
         for (const platform of platforms) {
             platformContainer.innerHTML +=

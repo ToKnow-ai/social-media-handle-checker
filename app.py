@@ -1,19 +1,26 @@
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from .utils import get_socials, get_logger, availability_response
+import json
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
+from utils import get_socials, get_logger, availability_response
 
 app = FastAPI()
 
-# Mount the entire static directory
-app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 socials = get_socials()
 
 @app.get('/')
-async def index():
+def index(request: Request):
     try:
-        return FileResponse('static/index.html')
+        json_data = json.dumps([
+            {  "id": i.get('id'), "name": i.get('name'), "img": i.get('img'), } 
+            for i 
+            in socials
+        ])
+        return templates.TemplateResponse("index.html", {
+            "request": request, 
+            "json_data": json_data
+        })
     except Exception as e:
         return str(e)
 
@@ -24,11 +31,11 @@ async def check_social_media_handle(platform: str, username: str):
         return { 
             "message": f'❌ The platform "{platform}" is not supported' 
         }
-    return await _resolve(username, **social)
+    return await _resolve(platform, username, **social)
 
-async def _resolve(platform: str, username: str, *, validate, resolve, message = None):
+async def _resolve(platform: str, username: str, *, validate, resolve, message = None, **_):
     if not validate(username):
-        raise Exception(f'"{username}" is not a valid {platform} handle/username')
+        raise Exception(f'"{username}" is not a valid {platform} username')
     logs, logger = get_logger()
     response = await availability_response(
         resolve = resolve(username, logger),
